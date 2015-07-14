@@ -1,0 +1,148 @@
+#!/bin/bash
+
+name=$1
+libraries=${@:2}
+
+mkdir -p dist \
+  src/core \
+  src/components \
+  src/components/App
+
+touch package.json \
+  index.html \
+  src/index.js \
+  src/ \
+  src/core/base.styl \
+  src/core/helpers.styl \
+  src/components/App/App.js \
+  src/components/App/App.styl \
+  src/components/App/package.json
+
+# Package
+# -----------------------------------------------#
+
+package="{
+  \"name\": \"$name\",
+  \"version\": \"0.0.0\",
+  \"scripts\": {
+    \"js:watch\": \"watchify -v -d -t babelify -t partialify src/index.js -o dist/index.js\",
+    \"js:compile\": \"browserify -t babelify -t partialify src/index.js -o dist/index.min.js\",
+    \"css:watch\": \"stylus -w -m --sourcemap-inline -u nib -u jeet -u rupture src/index.styl -o dist/index.css\",
+    \"css:compile\": \"stylus -c -u nib -u jeet -u rupture src/index.styl -o dist/index.min.css\",
+    \"sync\": \"browser-sync start --no-open --no-notify --no-ghost-mode --no-online --no-ui --port 3001 --proxy localhost:3000 --files './dist/*.js, ./dist/*.css'\",
+    \"start\": \"npm run js:watch & npm run css:watch & npm run sync\",
+    \"dist\": \"npm run js:compile && npm run css:compile\"
+  }
+}"
+echo "$package" > package.json
+npm install --save-dev browserify watchify@2.6.2 babelify partialify browser-sync stylus jeet nib rupture
+npm install --save $libraries
+
+# Core
+# -----------------------------------------------#
+
+# HTML
+
+html="<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+<meta charset=\"utf-8\">
+<title>$name</title>
+<link rel=\"stylesheet\" href=\"dist/index.css\">
+</head>
+<body>
+<script src=\"dist/index.js\"></script>
+</body>
+</html>"
+echo "$html" > index.html
+
+# CSS
+
+css="@import \"nib\"
+@import \"jeet\"
+@import \"core/helpers\"
+@import \"core/base\"
+@import \"components/*\""
+echo "$css" > src/index.styl
+
+css="rupture.use-device-width = true
+jeet.max-width = 1080px
+
+:focus
+  outline: none
+
+*
+  box-sizing: border-box
+
+body
+  reset-box-model()
+  font-family: Arial, Helvetica, sans-serif line-height 1.5
+  color: #333
+
+input, select, textarea
+  padding: .55em
+  font-size: inherit
+
+input
+  background: white
+  border: 1px solid gray
+
+a:link, a:visited
+  color: blue
+  text-decoration: none
+
+.container
+  position: relative
+  width: 100%
+  center()"
+echo "$css" > src/core/base.styl
+
+css="ir()
+  text-indent: -9999px
+
+va()
+  position: relative
+  top: 50%
+  transform: translateY(-50%)
+
+responsive()
+  display: block
+  width: 100%
+  height: auto
+
+caps()
+  text-transform uppercase
+  letter-spacing 1px
+  font-weight bold
+
+arrow(color=inherit, pos=top, size=8px)
+  absolute: pos
+  margin-{pos}: -(size*2)
+  border: size solid transparent
+  border-{opposite-position(pos)}-color: color
+  if pos is top or pos is bottom
+    left: 50%
+    margin-left: -(size)
+  else
+    top: 50%
+    margin-top: -(size)"
+echo "$css" > src/core/helpers.styl
+
+# App
+
+js="require('babel/polyfill')
+
+var App = require('./components/App')"
+echo "$js" > src/index.js
+
+js="function App() {
+}
+
+module.exports = App"
+echo "$js" > src/components/App/App.js
+
+js="{
+  \"name\": \"App\",
+  \"main\": \"./App.js\"
+}"
+echo "$js" > src/components/App/package.json
