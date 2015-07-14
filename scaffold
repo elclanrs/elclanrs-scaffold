@@ -1,32 +1,27 @@
 #!/bin/bash
 
 name=$1
-libraries=${@:2}
+author=$2
+libraries=${@:3}
 
-mkdir -p dist \
-  src/core \
-  src/components \
-  src/components/App
-
-touch package.json \
-  index.html \
-  src/index.js \
-  src/ \
-  src/core/base.styl \
-  src/core/helpers.styl \
-  src/components/App/App.js \
-  src/components/App/App.styl \
-  src/components/App/package.json
+mkdir -p {dist,src/{core,components/App}}
+touch package.json src/{index.js,index.styl,core/{base.styl,helpers.styl,helpers.js},components/App/{App.js,App.styl,package.json}}
 
 # Package
 # -----------------------------------------------#
 
+header="/*!
+ * $name
+ * @author $author
+ */"
+
 package="{
   \"name\": \"$name\",
+  \"author\": \"$author\",
   \"version\": \"0.0.0\",
   \"scripts\": {
     \"js:watch\": \"watchify -v -d -t babelify -t partialify src/index.js -o dist/index.js\",
-    \"js:compile\": \"browserify -t babelify -t partialify src/index.js -o dist/index.min.js\",
+    \"js:compile\": \"browserify -t babelify -t partialify -p [minifyify --no-map] src/index.js -o dist/index.min.js\",
     \"css:watch\": \"stylus -w -m --sourcemap-inline -u nib -u jeet -u rupture src/index.styl -o dist/index.css\",
     \"css:compile\": \"stylus -c -u nib -u jeet -u rupture src/index.styl -o dist/index.min.css\",
     \"sync\": \"browser-sync start --no-open --no-notify --no-ghost-mode --no-online --no-ui --port 3001 --proxy localhost:3000 --files './dist/*.js, ./dist/*.css'\",
@@ -34,14 +29,6 @@ package="{
     \"dist\": \"npm run js:compile && npm run css:compile\"
   }
 }"
-echo "$package" > package.json
-npm install --save-dev browserify watchify@2.6.2 babelify partialify browser-sync stylus jeet nib rupture
-npm install --save $libraries
-
-# Core
-# -----------------------------------------------#
-
-# HTML
 
 html="<!DOCTYPE html>
 <html lang=\"en\">
@@ -54,18 +41,15 @@ html="<!DOCTYPE html>
 <script src=\"dist/index.js\"></script>
 </body>
 </html>"
-echo "$html" > index.html
 
-# CSS
-
-css="@import \"nib\"
+css_index="$header
+@import \"nib\"
 @import \"jeet\"
 @import \"core/helpers\"
 @import \"core/base\"
 @import \"components/*\""
-echo "$css" > src/index.styl
 
-css="rupture.use-device-width = true
+css_base="rupture.use-device-width = true
 jeet.max-width = 1080px
 
 :focus
@@ -95,9 +79,8 @@ a:link, a:visited
   position: relative
   width: 100%
   center()"
-echo "$css" > src/core/base.styl
 
-css="ir()
+css_helpers="ir()
   text-indent: -9999px
 
 va()
@@ -126,23 +109,31 @@ arrow(color=inherit, pos=top, size=8px)
   else
     top: 50%
     margin-top: -(size)"
-echo "$css" > src/core/helpers.styl
 
-# App
-
-js="require('babel/polyfill')
+js_index="$header
+require('babel/polyfill')
 
 var App = require('./components/App')"
-echo "$js" > src/index.js
 
-js="function App() {
+js_app="function App() {
 }
 
 module.exports = App"
-echo "$js" > src/components/App/App.js
 
-js="{
+js_app_package="{
   \"name\": \"App\",
+  \"author\": \"$author\",
   \"main\": \"./App.js\"
 }"
-echo "$js" > src/components/App/package.json
+
+echo "$package" > package.json
+echo "$html" > index.html
+echo "$css_index" > src/index.styl
+echo "$css_base" > src/core/base.styl
+echo "$css_helpers" > src/core/helpers.styl
+echo "$js_index" > src/index.js
+echo "$js_app" > src/components/App/App.js
+echo "$js_app_package" > src/components/App/package.json
+
+npm install --save-dev browserify watchify@2.6.2 babelify partialify minifyify browser-sync stylus jeet nib rupture
+npm install --save $libraries
