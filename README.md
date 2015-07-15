@@ -1,7 +1,7 @@
 ```bash
-./scaffold [appName] [packages...]
+./scaffold [appName] [author] [packages...]
 
 # Examples:
-./scaffold ReactApp react react-router
-./scaffold KnockoutApp knockout knockout-postbox
+./scaffold ReactApp "My Name" react react-router
+./scaffold KnockoutApp "My Company" knockout knockout-postbox
 ```
